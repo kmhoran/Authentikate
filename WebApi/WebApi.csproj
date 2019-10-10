@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <TargetFramework>netcoreapp3.0</TargetFramework>
+        <UserSecretsId>authentikate-99b5-4b68-8dd3-4be210131f8d</UserSecretsId>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Lib\Users\Common\Users.Common.csproj" />
+        <ProjectReference Include="..\Lib\Users\Repositories\Users.Repositories.csproj" />
+        <ProjectReference Include="..\Lib\Users\Services\Users.Services.csproj" />
+        <ProjectReference Include="..\Lib\Auth\Common\Auth.Common.csproj" />
+        <ProjectReference Include="..\Lib\Utils\Extentions\Utils.Extentions.csproj" />
+        <ProjectReference Include="..\Lib\Utils\Encrypt\Utils.Encrypt.csproj" />
+        <ProjectReference Include="..\Lib\Token\Services\Token.Services.csproj" />
+        <ProjectReference Include="..\Lib\Token\Common\Token.Common.csproj" />
+        <ProjectReference Include="..\Lib\Config\Docker\Config.Docker.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.0.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="2.2.0" />
+    </ItemGroup>
+</Project>

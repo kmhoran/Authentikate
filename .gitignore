@@ -1,0 +1,9 @@
+# builds
+bin/
+obj/
+
+# development secrets
+devSecrets/
+
+# vscode
+.vscode

@@ -1,0 +1,7 @@
+language: csharp
+mono: none
+dotnet: 3.0.100
+solution: Authentikate.sln
+script:
+  - dotnet restore
+#  - dotnet test  WRITE TESTS!
