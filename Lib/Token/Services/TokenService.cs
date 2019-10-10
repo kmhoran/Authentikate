@@ -74,9 +74,5 @@ namespace Token.Services
 
             return GenerateTokenSet(username);
         }
-
-
-
-
     }
 }
