@@ -44,7 +44,6 @@ namespace WebApi
             services.Configure<AuthSecret>(authSecretSection);
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUserService, UserService>();
-            // services.AddScoped<UserContext, UserContext>();
             services.AddScoped<ITokenRepository, TokenRepository>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddControllers();
@@ -64,13 +63,6 @@ namespace WebApi
                   .GetAppTokenValidationParameters(secretKey);
             });
 
-            // services.AddDbContextPool<UserContext>(
-            //     options => options.UseMySql("Server=localhost;Database=somedb;User=root;Password=mypass123;",
-            //     mySqlOptions =>
-            //     {
-            //         mySqlOptions.ServerVersion(new Version(8,0,17), Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql);
-            //     })
-            // );
             services.AddDbContext<UserContext>(
                 options => options.UseMySql("Server=localhost;Database=somedb;User=root;Password=mypass123;",
                 mySqlOptions =>
