@@ -1,10 +1,13 @@
 using System;
+using System.Threading.Tasks;
+using App.Common.Models;
 using Token.Common.Entities;
 
 namespace Token.Common.Interfaces
 {
     public interface ITokenRepository {
-        JwtToken SaveJwtToken(JwtToken token);
-        JwtToken LoadTokenRecord(string token);
+        Task<AppWrapper<JwtToken>> SaveJwtTokenAsync(JwtToken token);
+        Task<AppWrapper<JwtToken>> LoadTokenRecordAsync(string token);
+        Task<AppWrapper> RemoveTokenRecordAsync(string token);
     }
 }

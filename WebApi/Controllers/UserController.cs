@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using App.Common.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using Newtonsoft.Json;
 using Token.Common.Interfaces;
 using Users.Common.Interfaces;
 using WebApi.Models;
@@ -27,21 +30,71 @@ namespace WebApi.Controllers
 
         [AllowAnonymous]
         [HttpPost("authenticate")]
-        public IActionResult Authenticate([FromBody] UserLoginRequest login)
+        public async Task<IActionResult> Authenticate([FromBody] UserLoginRequest login)
         {
             if (!ModelState.IsValid) return BadRequestResponse(ModelState.ToString());
 
-            var user = _userService.Authenticate(login.Username, login.Password);
+            var authenticateResponse = _userService.Authenticate(login.Username, login.Password);
+            if (!authenticateResponse.Success)
+                return HandleServiceFailure(authenticateResponse);
+
+            var user = authenticateResponse.Data;
             if (user == null) return BadRequestResponse("Invalid Credentials");
 
-            var tokenSet = _tokenService.GenerateTokenSet(user.Username);
+            var tokenResponse = await _tokenService.GenerateTokenSetAsync(user.Username);
+            if (!tokenResponse.Success)
+                return HandleServiceFailure(tokenResponse);
 
-            return OkResponse(tokenSet);
+            return OkResponse(tokenResponse.Data);
 
         }
 
         [HttpPost("refresh")]
-        public IActionResult Refresh([FromBody]RefreshTokenRequest request)
+        public async Task<IActionResult> Refresh([FromBody]RefreshTokenRequest request)
+        {
+            var token = parseTorken(HttpContext);
+            if (string.IsNullOrEmpty(token)) return UnauthorizedResponse();
+
+            var refreshResponse = await _tokenService
+                .RefreshUserTokenAsync(token, request.RefreshToken);
+            if (!refreshResponse.Success)
+                return HandleServiceFailure(refreshResponse);
+
+            return OkResponse(refreshResponse.Data);
+        }
+
+        [HttpPost("validate")]
+        public async Task<IActionResult> Validate()
+        {
+            var token = parseTorken(HttpContext);
+            if (string.IsNullOrEmpty(token)) return UnauthorizedResponse();
+
+            var validationResponse = await _tokenService.ValidateTokenAsync(token);
+            if (!validationResponse.Success)
+                return UnauthorizedResponse();
+
+            var userName = validationResponse.Data.Identity.Name;
+
+            return OkResponse(userName);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Get()
+        {
+            var token = parseTorken(HttpContext);
+
+            var validation = await _tokenService.ValidateTokenAsync(token);
+            if (!validation.Success)
+                return UnauthorizedResponse();
+
+            var getUserResponse = _userService.GetAllUsers();
+            if (!getUserResponse.Success)
+                return HandleServiceFailure(getUserResponse);
+
+            return OkResponse(getUserResponse.Data);
+        }
+
+        private string parseTorken(HttpContext httpContext)
         {
             StringValues authHeader;
             var success = HttpContext.Request.Headers.TryGetValue("Authorization", out authHeader);
@@ -51,20 +104,17 @@ namespace WebApi.Controllers
                 string.IsNullOrEmpty(bearerToken) ||
                 !bearerToken.Contains("Bearer ")
               )
-                return UnauthorizedResponse();
+                return null;
 
-            var token = bearerToken.Split(' ')[1];
-
-            var newToken = _tokenService.RefreshUserToken(token, request.RefreshToken);
-
-            return OkResponse(newToken);
+            return bearerToken.Split(' ')[1];
         }
 
-        [HttpGet("")]
-        public ActionResult<IEnumerable<string>> Get()
+        private IActionResult HandleServiceFailure(IAppWrapper response)
         {
-            var users = _userService.GetAllUsers();
-            return OkResponse(users);
+            Console.WriteLine(response.Exception.Message);
+            if (response.Exception.InnerException != null)
+                Console.WriteLine(response.Exception.InnerException.Message);
+            return this.BadRequestResponse(response.Message);
         }
     }
 }

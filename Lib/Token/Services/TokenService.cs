@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Security.Principal;
+using System.Threading.Tasks;
+using App.Common.Models;
 using Auth.Common.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -22,57 +25,118 @@ namespace Token.Services
                 throw new ArgumentNullException("Auth Secret");
             _secretKey = authSecret.Value.JwtSecret;
         }
+
+        public async Task<AppWrapper<JwtToken>> LoadTokenRecordAsync(string token)
+        {
+            try
+            {
+                var principal = Jwt.GetPrincipalFromToken(token, this._secretKey);
+                var username = principal.Identity.Name;
+
+                var loadResponse = await _repo.LoadTokenRecordAsync(token);
+                if (loadResponse == null || !loadResponse.Success) return loadResponse;
+
+                var savedRecord = loadResponse.Data;
+                if (savedRecord == null) return new AppWrapper<JwtToken>(null);
+                if (savedRecord.Username != username)
+                    return new AppWrapper<JwtToken>(new SecurityTokenException("Wrong User"), "Invalid Token");
+
+                return new AppWrapper<JwtToken>(savedRecord);
+            }
+            catch (Exception ex)
+            {
+                return new AppWrapper<JwtToken>(ex, "Unable to LoadTokenRecordAsync");
+            }
+        }
+
         private DateTime GetTokenExpiration() => DateTime.UtcNow.AddHours(2);
         private DateTime GetRefreshExpiration() => DateTime.UtcNow.AddDays(1);
 
-        public TokenSet GenerateTokenSet(string username)
+        public async Task<AppWrapper<TokenSet>> GenerateTokenSetAsync(string username)
         {
-            var expiration = GetTokenExpiration();
-            var token = Jwt.GenerateJwt(username, this._secretKey, expiration);
-
-            var refreshExpiration = GetRefreshExpiration();
-            var refreshToken = Jwt.GenerateRefreshToken();
-
-            var tokenRecord = new JwtToken
+            try
             {
-                Username = username,
-                Token = token,
-                TokenExpirationUtc = expiration,
-                RefreshToken = refreshToken,
-                RefreshExpirationUtc = refreshExpiration,
-                DateIssuedUtc = DateTime.UtcNow
-            };
+                var expiration = GetTokenExpiration();
+                var token = Jwt.GenerateJwt(username, this._secretKey, expiration);
 
-            _repo.SaveJwtToken(tokenRecord);
+                var refreshExpiration = GetRefreshExpiration();
+                var refreshToken = Jwt.GenerateRefreshToken();
 
-            return new TokenSet
+                var tokenRecord = new JwtToken
+                {
+                    Username = username,
+                    Token = token,
+                    TokenExpirationUtc = expiration,
+                    RefreshToken = refreshToken,
+                    RefreshExpirationUtc = refreshExpiration,
+                    DateIssuedUtc = DateTime.UtcNow
+                };
+
+                var saveResult = await _repo.SaveJwtTokenAsync(tokenRecord);
+                if (!saveResult.Success)
+                    return (AppWrapper)saveResult as AppWrapper<TokenSet>;
+
+                return new AppWrapper<TokenSet>(new TokenSet
+                {
+                    Token = token,
+                    RefreshToken = refreshToken,
+                    ExpirationUtc = expiration.ToISOString()
+                });
+            }
+            catch (Exception ex)
             {
-                Token = token,
-                RefreshToken = refreshToken,
-                ExpirationUtc = expiration.ToISOString()
-            };
+                return new AppWrapper<TokenSet>(ex, "Unable to GenerateTokenSetAsync");
+            }
         }
 
-        public string ValidateToken(string token){
-            return token;
-        }
-
-        public TokenSet RefreshUserToken(string token, string refreshToken)
+        public async Task<AppWrapper<IPrincipal>> ValidateTokenAsync(string token)
         {
+                        try
+            {
+            if (string.IsNullOrEmpty(token))
+                return new AppWrapper<IPrincipal>(new SecurityTokenException("Null token given"), "Invalid Token");
+
+            var loadResponse = await LoadTokenRecordAsync(token);
+            if (!loadResponse.Success)
+                return (AppWrapper)loadResponse as AppWrapper<IPrincipal>;
+
+            var record = loadResponse.Data;
+            if (record == null)
+                return new AppWrapper<IPrincipal>(new SecurityTokenException("No token record"), "Invalid Token");
+
+            if (record.TokenExpirationUtc <= DateTime.UtcNow)
+                return new AppWrapper<IPrincipal>(new SecurityTokenException("Token Expired"), "Invalid Token");
+
             var principal = Jwt.GetPrincipalFromToken(token, this._secretKey);
-            var username = principal.Identity.Name;
-            var savedRecord = _repo.LoadTokenRecord(token);
 
-            if (savedRecord == null || savedRecord.RefreshToken != refreshToken)
-                throw new SecurityTokenException("Invalid Token");
-            if (savedRecord.DateRefreshedUtc != null) throw new SecurityTokenException("Refesh Token Already Used");
-            if (savedRecord.RefreshExpirationUtc < DateTime.UtcNow) throw new SecurityTokenException("Expired RefreshToken");
-            if (savedRecord.Username != username) throw new SecurityTokenException("Wrong User");
-            
-            savedRecord.DateRefreshedUtc = DateTime.UtcNow;
-            _repo.SaveJwtToken(savedRecord);
+            return new AppWrapper<IPrincipal>(principal);
+            }
+            catch (Exception ex)
+            {
+                return new AppWrapper<IPrincipal>(ex, "Unable to ValidateTokenAsync");
+            }
+        }
 
-            return GenerateTokenSet(username);
+        public async Task<AppWrapper<TokenSet>> RefreshUserTokenAsync(string token, string refreshToken)
+        {
+            var loadResponse = await LoadTokenRecordAsync(token);
+            if (!loadResponse.Success)
+                return (AppWrapper)loadResponse as AppWrapper<TokenSet>;
+
+            var savedRecord = loadResponse.Data;
+
+            if (savedRecord == null)
+                return new AppWrapper<TokenSet>(new SecurityTokenException("No token record"), "Invalid Token");
+            if (savedRecord.RefreshToken != refreshToken)
+                return new AppWrapper<TokenSet>(
+                    new SecurityTokenException("Invalid refresh token. Will Not Refresh"), "Invalid Token");
+            if (savedRecord.RefreshExpirationUtc < DateTime.UtcNow)
+                return new AppWrapper<TokenSet>(new SecurityTokenException("Expired RefreshToken"), "Invalid Token");
+
+            var removalResponse = await _repo.RemoveTokenRecordAsync(token);
+            if (!removalResponse.Success) return removalResponse as AppWrapper<TokenSet>;
+
+            return await GenerateTokenSetAsync(savedRecord.Username);
         }
     }
 }

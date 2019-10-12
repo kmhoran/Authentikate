@@ -5,6 +5,7 @@ using Utils.Encrypt;
 using Auth.Common.Models;
 using Users.Common.Entities;
 using System.Collections.Generic;
+using App.Common.Models;
 
 namespace Users.Services
 {
@@ -21,13 +22,13 @@ namespace Users.Services
             _secretKey = authSecret.Value.UserSecret;
         }
 
-        public User Authenticate(string username, string password)
+        public AppWrapper<User> Authenticate(string username, string password)
         {
             var encodedPass = Cryptic.Encrypt(password, this._secretKey);
             return _repo.Authenticate(username, encodedPass);
         }
 
-        public IEnumerable<User> GetAllUsers()
+        public AppWrapper<IList<User>> GetAllUsers()
         {
             return _repo.GetAllUsers();
         }

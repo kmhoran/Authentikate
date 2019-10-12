@@ -64,12 +64,17 @@ namespace WebApi
             });
 
             services.AddDbContext<UserContext>(
-                options => options.UseMySql("Server=localhost;Database=somedb;User=root;Password=mypass123;",
+                options => options.UseMySql(authSecret.ConnectionString,
                 mySqlOptions =>
                 {
                     mySqlOptions.ServerVersion(new Version(8,0,17), Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql);
                 })
             );
+
+            services.AddStackExchangeRedisCache(options => {
+                options.Configuration = "authentikate-cache";
+                options.InstanceName = "some-name";
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
