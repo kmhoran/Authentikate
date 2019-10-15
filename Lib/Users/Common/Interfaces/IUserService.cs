@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using App.Common.Models;
 using Users.Common.Entities;
 
 namespace Users.Common.Interfaces
 {
     public interface IUserService {
-        AppWrapper<User> Authenticate(string username, string password);
-        AppWrapper<IList<User>> GetAllUsers();
+        Task<AppWrapper<User>> AuthenticateAsync(string username, string password);
+        Task<AppWrapper<IList<User>>> GetAllUsersAsync();
     }
 }

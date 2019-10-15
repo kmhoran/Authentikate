@@ -6,6 +6,7 @@ namespace App.Common.Models
     {
         public string UserSecret { get; set; }
         public string JwtSecret { get; set; }
-        public string ConnectionString { get; set; }
+        public string MySqlConnectionString { get; set; }
+        public string RedisConfig { get; set; }
     }
 }
