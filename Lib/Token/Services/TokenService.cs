@@ -75,14 +75,12 @@ namespace Token.Services
                 if (!saveResult.Success)
                     return new AppWrapper<TokenSet>(saveResult.Exception, saveResult.Message);
 
-                var result = new AppWrapper<TokenSet>(new TokenSet
+                return new AppWrapper<TokenSet>(new TokenSet
                 {
                     Token = token,
                     RefreshToken = refreshToken,
                     ExpirationUtc = expiration.ToISOString()
                 });
-
-                return result;
             }
             catch (Exception ex)
             {
