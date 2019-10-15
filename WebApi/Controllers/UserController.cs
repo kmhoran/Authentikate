@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
-using Newtonsoft.Json;
 using Token.Common.Interfaces;
 using Users.Common.Interfaces;
 using WebApi.Models;
@@ -34,12 +33,13 @@ namespace WebApi.Controllers
         {
             if (!ModelState.IsValid) return BadRequestResponse(ModelState.ToString());
 
-            var authenticateResponse = _userService.Authenticate(login.Username, login.Password);
+            var authenticateResponse = await _userService.AuthenticateAsync(login.Username, login.Password);
             if (!authenticateResponse.Success)
-                return HandleServiceFailure(authenticateResponse);
+                return HandleAuthenticationFailure(authenticateResponse);
 
             var user = authenticateResponse.Data;
-            if (user == null) return BadRequestResponse("Invalid Credentials");
+            if (user == null) return NotFoundResponse("User not found");
+
 
             var tokenResponse = await _tokenService.GenerateTokenSetAsync(user.Username);
             if (!tokenResponse.Success)
@@ -71,7 +71,7 @@ namespace WebApi.Controllers
 
             var validationResponse = await _tokenService.ValidateTokenAsync(token);
             if (!validationResponse.Success)
-                return UnauthorizedResponse();
+                return HandleAuthenticationFailure(validationResponse);
 
             var userName = validationResponse.Data.Identity.Name;
 
@@ -85,9 +85,9 @@ namespace WebApi.Controllers
 
             var validation = await _tokenService.ValidateTokenAsync(token);
             if (!validation.Success)
-                return UnauthorizedResponse();
+                return HandleAuthenticationFailure(validation);
 
-            var getUserResponse = _userService.GetAllUsers();
+            var getUserResponse = await _userService.GetAllUsersAsync();
             if (!getUserResponse.Success)
                 return HandleServiceFailure(getUserResponse);
 
@@ -115,6 +115,14 @@ namespace WebApi.Controllers
             if (response.Exception.InnerException != null)
                 Console.WriteLine(response.Exception.InnerException.Message);
             return this.BadRequestResponse(response.Message);
+        }
+
+        private IActionResult HandleAuthenticationFailure(IAppWrapper response)
+        {
+            Console.WriteLine(response.Exception.Message);
+            if (response.Exception.InnerException != null)
+                Console.WriteLine(response.Exception.InnerException.Message);
+            return this.UnauthorizedResponse();
         }
     }
 }

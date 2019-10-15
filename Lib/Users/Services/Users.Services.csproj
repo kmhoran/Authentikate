@@ -4,7 +4,6 @@
     <ProjectReference Include="..\Common\Users.Common.csproj" />
     <ProjectReference Include="..\Repositories\Users.Repositories.csproj" />
     <ProjectReference Include="..\..\Utils\Encrypt\Utils.Encrypt.csproj" />
-    <ProjectReference Include="..\..\Auth\Common\Auth.Common.csproj" />
     <ProjectReference Include="..\..\App\Common\App.Common.csproj" />
   </ItemGroup>
 

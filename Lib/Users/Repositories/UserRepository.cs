@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using App.Common.Models;
-using Auth.Common.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Users.Common.Entities;
 using Users.Common.Interfaces;
@@ -14,50 +15,57 @@ namespace Users.Repositories
     {
         private string _connectionString;
 
-        public UserRepository(IOptions<AuthSecret> authSecret)
+        public UserRepository(IOptions<AppSecret> appSecret)
         {
-            _connectionString = authSecret.Value.ConnectionString;
-        }
-        public AppWrapper<User> Authenticate(string username, string password)
-        {
-            return new AppWrapper<User>
-            {
-                Success = true,
-                Data = new User
-                {
-                    UserId = 1,
-                    UserType = "normal-user",
-                    FirstName = "Joe",
-                    LastName = "Cool",
-                    Username = "j.cool@e.com",
-                    Password = "uriowtuirewutipoutirpoew",
-                }
-            };
+            _connectionString = appSecret.Value.MySqlConnectionString;
         }
 
-
-        public AppWrapper<IList<User>> GetAllUsers()
+        public async Task<AppWrapper<User>> GetUserAsync(string username)
         {
             try
             {
                 using (var context = new UserContext(_connectionString))
                 {
-                    var queryResult = context.Set<User>().AsQueryable();
-                    return new AppWrapper<IList<User>>
-                    {
-                        Success = true,
-                        Data = queryResult.ToList()
-                    };
+                    var set = context.Set<User>().AsQueryable();
+                    return new AppWrapper<User>(await set.FirstOrDefaultAsync(x => x.Username == username));
                 }
             }
             catch (Exception ex)
             {
-                return new AppWrapper<IList<User>>
+                return new AppWrapper<User>(ex, $"Unable to GetUser");
+            }
+        }
+
+        public async Task<AppWrapper<IList<User>>> GetAllUsersAsync()
+        {
+            try
+            {
+                using (var context = new UserContext(_connectionString))
                 {
-                    Success = false,
-                    Exception = ex,
-                    Message = "Unable to get all users"
-                };
+                    var set = context.Set<User>().AsQueryable();
+                    return new AppWrapper<IList<User>>(await set.ToListAsync());
+                }
+            }
+            catch (Exception ex)
+            {
+                return new AppWrapper<IList<User>>(ex, "Unable to GetAllUsers");
+            }
+        }
+
+        public async Task<AppWrapper<int>> SaveUserAsync(User toSave)
+        {
+            try
+            {
+                using (var context = new UserContext(_connectionString))
+                {
+                    var isNew = toSave.UserId == 0;
+                    context.Entry(toSave).State = isNew ? EntityState.Added : EntityState.Modified;
+                    return new AppWrapper<int>(await context.SaveChangesAsync());
+                }
+            }
+            catch (Exception ex)
+            {
+                return new AppWrapper<int>(ex, "Unable to SaveUser");
             }
         }
     }

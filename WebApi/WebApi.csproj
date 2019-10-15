@@ -7,7 +7,6 @@
         <ProjectReference Include="..\Lib\Users\Common\Users.Common.csproj" />
         <ProjectReference Include="..\Lib\Users\Repositories\Users.Repositories.csproj" />
         <ProjectReference Include="..\Lib\Users\Services\Users.Services.csproj" />
-        <ProjectReference Include="..\Lib\Auth\Common\Auth.Common.csproj" />
         <ProjectReference Include="..\Lib\Utils\Extentions\Utils.Extentions.csproj" />
         <ProjectReference Include="..\Lib\Utils\Encrypt\Utils.Encrypt.csproj" />
         <ProjectReference Include="..\Lib\Token\Services\Token.Services.csproj" />

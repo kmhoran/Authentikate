@@ -2,7 +2,6 @@
 using System.Security.Principal;
 using System.Threading.Tasks;
 using App.Common.Models;
-using Auth.Common.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Token.Common.Entities;
@@ -18,12 +17,12 @@ namespace Token.Services
         private string _secretKey;
         private ITokenRepository _repo;
 
-        public TokenService(ITokenRepository repo, IOptions<AuthSecret> authSecret)
+        public TokenService(ITokenRepository repo, IOptions<AppSecret> appSecret)
         {
             _repo = repo ?? throw new ArgumentNullException(nameof(ITokenRepository));
-            if (authSecret.Value == null || string.IsNullOrEmpty(authSecret.Value.JwtSecret))
+            if (appSecret.Value == null || string.IsNullOrEmpty(appSecret.Value.JwtSecret))
                 throw new ArgumentNullException("Auth Secret");
-            _secretKey = authSecret.Value.JwtSecret;
+            _secretKey = appSecret.Value.JwtSecret;
         }
 
         public async Task<AppWrapper<JwtToken>> LoadTokenRecordAsync(string token)
@@ -74,7 +73,7 @@ namespace Token.Services
 
                 var saveResult = await _repo.SaveJwtTokenAsync(tokenRecord);
                 if (!saveResult.Success)
-                    return (AppWrapper)saveResult as AppWrapper<TokenSet>;
+                    return new AppWrapper<TokenSet>(saveResult.Exception, saveResult.Message);
 
                 return new AppWrapper<TokenSet>(new TokenSet
                 {
@@ -91,25 +90,25 @@ namespace Token.Services
 
         public async Task<AppWrapper<IPrincipal>> ValidateTokenAsync(string token)
         {
-                        try
+            try
             {
-            if (string.IsNullOrEmpty(token))
-                return new AppWrapper<IPrincipal>(new SecurityTokenException("Null token given"), "Invalid Token");
+                if (string.IsNullOrEmpty(token))
+                    return new AppWrapper<IPrincipal>(new SecurityTokenException("Null token given"), "Invalid Token");
 
-            var loadResponse = await LoadTokenRecordAsync(token);
-            if (!loadResponse.Success)
-                return (AppWrapper)loadResponse as AppWrapper<IPrincipal>;
+                var loadResponse = await LoadTokenRecordAsync(token);
+                if (!loadResponse.Success)
+                    return (AppWrapper)loadResponse as AppWrapper<IPrincipal>;
 
-            var record = loadResponse.Data;
-            if (record == null)
-                return new AppWrapper<IPrincipal>(new SecurityTokenException("No token record"), "Invalid Token");
+                var record = loadResponse.Data;
+                if (record == null)
+                    return new AppWrapper<IPrincipal>(new SecurityTokenException("No token record"), "Invalid Token");
 
-            if (record.TokenExpirationUtc <= DateTime.UtcNow)
-                return new AppWrapper<IPrincipal>(new SecurityTokenException("Token Expired"), "Invalid Token");
+                if (record.TokenExpirationUtc <= DateTime.UtcNow)
+                    return new AppWrapper<IPrincipal>(new SecurityTokenException("Token Expired"), "Invalid Token");
 
-            var principal = Jwt.GetPrincipalFromToken(token, this._secretKey);
+                var principal = Jwt.GetPrincipalFromToken(token, this._secretKey);
 
-            return new AppWrapper<IPrincipal>(principal);
+                return new AppWrapper<IPrincipal>(principal);
             }
             catch (Exception ex)
             {
