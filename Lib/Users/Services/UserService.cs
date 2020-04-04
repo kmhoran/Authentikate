@@ -43,9 +43,19 @@ namespace Users.Services
             return new AppWrapper<User>(user);
         }
 
+        public async Task<AppWrapper<User>> GetUserAsync(string username)
+        {
+            return await _repo.GetUserAsync(username);
+        }
+
         public async Task<AppWrapper<IList<User>>> GetAllUsersAsync()
         {
             return await _repo.GetAllUsersAsync();
+        }
+
+        public async Task<AppWrapper<int>> SaveUserAsync(User user)
+        {
+            return await _repo.SaveUserAsync(user);
         }
     }
 }

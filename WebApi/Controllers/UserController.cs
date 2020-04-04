@@ -63,7 +63,7 @@ namespace WebApi.Controllers
             return OkResponse(refreshResponse.Data);
         }
 
-        [HttpPost("validate")]
+        [HttpGet("validate")]
         public async Task<IActionResult> Validate()
         {
             var token = parseTorken(HttpContext);
@@ -94,6 +94,20 @@ namespace WebApi.Controllers
             return OkResponse(getUserResponse.Data);
         }
 
+        // [HttpPost]
+        // public async Task<IActionResult> SaveUser()
+        // {
+        //     var token = parseTorken(HttpContext);
+        //     var validation = await _tokenService.ValidateTokenAsync(token);
+        //     if (!validation.Success)
+        //         return HandleAuthenticationFailure(validation);
+        //     var principal = validation.Data;
+        //     var userResp = await _userService.GetUserAsync(principal.Identity.Name);
+
+        //     return OkResponse(getUserResponse.Data);
+        // }
+
+        #region HELPERS
         private string parseTorken(HttpContext httpContext)
         {
             StringValues authHeader;
@@ -124,5 +138,6 @@ namespace WebApi.Controllers
                 Console.WriteLine(response.Exception.InnerException.Message);
             return this.UnauthorizedResponse();
         }
+        #endregion
     }
 }
