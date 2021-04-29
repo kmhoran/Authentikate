@@ -1,0 +1,36 @@
+version: 2
+updates:
+- package-ecosystem: nuget
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: Pomelo.EntityFrameworkCore.MySql
+    versions:
+    - 3.2.4
+    - 3.2.5
+  - dependency-name: System.IdentityModel.Tokens.Jwt
+    versions:
+    - 6.10.0
+    - 6.10.1
+    - 6.10.2
+    - 6.8.0
+    - 6.9.0
+  - dependency-name: System.IO.Abstractions
+    versions:
+    - 13.2.10
+    - 13.2.11
+    - 13.2.15
+    - 13.2.17
+    - 13.2.20
+    - 13.2.23
+    - 13.2.24
+    - 13.2.25
+    - 13.2.28
+    - 13.2.9
+  - dependency-name: Microsoft.AspNetCore.Authentication.JwtBearer
+    versions:
+    - 5.0.2
+    - 5.0.3
+    - 5.0.4
